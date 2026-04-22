@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/prometheus/model/exemplar"
 	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/value"
 	"github.com/prometheus/prometheus/storage"
 	"go.uber.org/atomic"
 )
@@ -264,6 +265,14 @@ func (h *histogram) removeStaleSeries(appender storage.Appender, timeMs, staleTi
 
 	for hash, s := range h.series {
 		if s.lastUpdated.Load() < staleTimeMs {
+			_, err := appender.Append(0, s.countLabels, timeMs, math.Float64frombits(value.StaleNaN))
+			_, err = appender.Append(0, s.sumLabels, timeMs, math.Float64frombits(value.StaleNaN))
+			for _, l := range s.bucketLabels {
+				_, err = appender.Append(0, l, timeMs, math.Float64frombits(value.StaleNaN))
+			}
+			if err != nil {
+				// handle
+			}
 			delete(h.series, hash)
 			h.lifecycler.OnDelete(hash, h.activeSeriesPerHistogramSerie())
 		}
